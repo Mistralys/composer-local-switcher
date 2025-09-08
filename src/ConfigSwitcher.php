@@ -10,6 +10,7 @@ namespace Mistralys\ComposerSwitcher;
 
 use Mistralys\ComposerSwitcher\Utils\ConfigFile;
 use Mistralys\ComposerSwitcher\Utils\ConsoleWriter;
+use Mistralys\ComposerSwitcher\Utils\LockFile;
 
 /**
  * @package Composer Switcher
@@ -19,6 +20,8 @@ class ConfigSwitcher
 {
     public const MODE_DEV = 'dev';
     public const MODE_PROD = 'prod';
+
+    public const KEY_IS_DEV_CONFIG = 'isDevConfig';
 
     /**
      * @var ConfigFile
@@ -58,6 +61,43 @@ class ConfigSwitcher
 
         $config = $this->prodFile->getData();
 
+        $isDev = isset($config[self::KEY_IS_DEV_CONFIG]) && $config[self::KEY_IS_DEV_CONFIG] === true;
+        $isProd = !$isDev;
+
+        // Restore DEV to PROD
+        if($isDev && $mode === self::MODE_PROD)
+        {
+            $backupFrom = $this->mainFile->getLockFile();
+            $backupTo = $this->devFile->getLockFile();
+            $restoreFrom = $this->prodFile->getLockFile();
+        }
+        // Overwrite PROD to DEV
+        else if($isProd && $mode === self::MODE_DEV)
+        {
+            $backupFrom = $this->mainFile->getLockFile();
+            $backupTo = $this->prodFile->getLockFile();
+            $restoreFrom = $this->devFile->getLockFile();
+        }
+
+        if(isset($backupFrom, $backupTo, $restoreFrom))
+        {
+            ConsoleWriter::line1('Backing up current lock file and restoring the appropriate one...');
+            ConsoleWriter::line2('%s -> %s', $backupFrom->getName(), $backupTo->getName());
+
+            // back up current lock file
+            $backupFrom->copyTo($backupTo);
+
+            // restore the original lock file
+            $restoreTo = $this->mainFile->getLockFile();
+            if ($restoreFrom->exists()) {
+                ConsoleWriter::line2('%s -> %s', $restoreFrom->getName(), $restoreTo->getName());
+                $restoreFrom->copyTo($restoreTo);
+            } else {
+                ConsoleWriter::line2('Delete %s', $restoreTo->getName());
+                $restoreTo->delete();
+            }
+        }
+
         if ($mode === self::MODE_DEV) {
             $config = $this->adjustForDev($config);
         }
@@ -84,6 +124,8 @@ class ConfigSwitcher
                 ComposerSwitcherException::ERROR_INVALID_JSON_STRUCTURE
             );
         }
+
+        $config[self::KEY_IS_DEV_CONFIG] = true;
 
         foreach($devConfig['local-repositories'] as $repo)
         {
