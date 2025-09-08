@@ -13,4 +13,6 @@ class ComposerSwitcherException extends Exception
     public const ERROR_INVALID_JSON_STRUCTURE = 182103;
     public const ERROR_CANNOT_ENCODE_JSON = 182104;
     public const ERROR_CANNOT_WRITE_FILE = 182105;
+    public const ERROR_CANNOT_DELETE_FILE = 182106;
+    public const ERROR_CANNOT_COPY_FILE = 182107;
 }
