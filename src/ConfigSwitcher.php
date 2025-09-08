@@ -88,7 +88,7 @@ class ConfigSwitcher
                 ConsoleWriter::line2('%s -> %s', $backupFrom->getName(), $backupTo->getName());
                 $backupFrom->copyTo($backupTo);
             } else {
-                ConsoleWriter::line2('%s -> %s (not found)', $backupTo->getName());
+                ConsoleWriter::line2('%s -> %s (not found)', $backupFrom->getName(), $backupTo->getName());
                 $backupTo->delete();
             }
 
@@ -98,7 +98,7 @@ class ConfigSwitcher
                 ConsoleWriter::line2('%s -> %s', $restoreFrom->getName(), $restoreTo->getName());
                 $restoreFrom->copyTo($restoreTo);
             } else {
-                ConsoleWriter::line2('%s -> %s (not found)', $restoreTo->getName());
+                ConsoleWriter::line2('%s -> %s (not found)', $restoreFrom->getName(), $restoreTo->getName());
                 $restoreTo->delete();
             }
         }
