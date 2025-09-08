@@ -1,0 +1,16 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Mistralys\ComposerSwitcher;
+
+use Exception;
+
+class ComposerSwitcherException extends Exception
+{
+    public const ERROR_DEV_FILE_MISSING = 182101;
+    public const ERROR_CANNOT_DECODE_JSON = 182102;
+    public const ERROR_INVALID_JSON_STRUCTURE = 182103;
+    public const ERROR_CANNOT_ENCODE_JSON = 182104;
+    public const ERROR_CANNOT_WRITE_FILE = 182105;
+}
