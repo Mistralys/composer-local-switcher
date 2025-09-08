@@ -81,11 +81,16 @@ class ConfigSwitcher
 
         if(isset($backupFrom, $backupTo, $restoreFrom))
         {
-            ConsoleWriter::line1('Backing up current lock file and restoring the appropriate one...');
-            ConsoleWriter::line2('%s -> %s', $backupFrom->getName(), $backupTo->getName());
+            ConsoleWriter::line1('Updating lock files...');
 
             // back up current lock file
-            $backupFrom->copyTo($backupTo);
+            if($backupFrom->exists()) {
+                ConsoleWriter::line2('%s -> %s', $backupFrom->getName(), $backupTo->getName());
+                $backupFrom->copyTo($backupTo);
+            } else {
+                ConsoleWriter::line2('%s -> %s (not found)', $backupTo->getName());
+                $backupTo->delete();
+            }
 
             // restore the original lock file
             $restoreTo = $this->mainFile->getLockFile();
@@ -93,7 +98,7 @@ class ConfigSwitcher
                 ConsoleWriter::line2('%s -> %s', $restoreFrom->getName(), $restoreTo->getName());
                 $restoreFrom->copyTo($restoreTo);
             } else {
-                ConsoleWriter::line2('Delete %s', $restoreTo->getName());
+                ConsoleWriter::line2('%s -> %s (not found)', $restoreTo->getName());
                 $restoreTo->delete();
             }
         }
