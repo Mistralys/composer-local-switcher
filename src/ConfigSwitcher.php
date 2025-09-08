@@ -10,7 +10,6 @@ namespace Mistralys\ComposerSwitcher;
 
 use Mistralys\ComposerSwitcher\Utils\ConfigFile;
 use Mistralys\ComposerSwitcher\Utils\ConsoleWriter;
-use Mistralys\ComposerSwitcher\Utils\LockFile;
 
 /**
  * @package Composer Switcher
@@ -89,22 +88,25 @@ class ConfigSwitcher
         {
             ConsoleWriter::line1('Updating lock files...');
 
+            ConsoleWriter::line2('%s -> %s', $backupFrom->getName(), $backupTo->getName());
+
             // back up current lock file
             if($backupFrom->exists()) {
-                ConsoleWriter::line2('%s -> %s', $backupFrom->getName(), $backupTo->getName());
                 $backupFrom->copyTo($backupTo);
             } else {
-                ConsoleWriter::line2('%s -> %s (not found)', $backupFrom->getName(), $backupTo->getName());
+                ConsoleWriter::line2('Deleting %s, will have to be created.', $backupFrom->getName(), $backupTo->getName());
                 $backupTo->delete();
             }
 
             // restore the original lock file
             $restoreTo = $this->mainFile->getLockFile();
+
+            ConsoleWriter::line2('%s -> %s', $restoreFrom->getName(), $restoreTo->getName());
+
             if ($restoreFrom->exists()) {
-                ConsoleWriter::line2('%s -> %s', $restoreFrom->getName(), $restoreTo->getName());
                 $restoreFrom->copyTo($restoreTo);
             } else {
-                ConsoleWriter::line2('%s -> %s (not found)', $restoreFrom->getName(), $restoreTo->getName());
+                ConsoleWriter::line2('Deleting %s, will have to be created.', $restoreFrom->getName(), $restoreTo->getName());
                 $restoreTo->delete();
             }
         }
