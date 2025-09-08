@@ -7,21 +7,23 @@ namespace Mistralys\ComposerSwitcher\Utils;
 use JsonException;
 use Mistralys\ComposerSwitcher\ComposerSwitcherException;
 
-class ConfigFile
+class ConfigFile extends BaseFile
 {
     /**
-     * @var string
+     * @var LockFile
      */
-    private $path;
+    private $lockFile;
 
     public function __construct(string $path)
     {
-        $this->path = $path;
+        parent::__construct($path);
+
+        $this->lockFile = new LockFile($this);
     }
 
-    public function exists() : bool
+    public function getLockFile() : LockFile
     {
-        return file_exists($this->path);
+        return $this->lockFile;
     }
 
     /**
@@ -30,16 +32,18 @@ class ConfigFile
      */
     public function getData() : array
     {
-        $json = file_get_contents($this->path);
+        $path = $this->getPath();
+
+        $json = file_get_contents($path);
         if($json === false) {
-            throw new ComposerSwitcherException('Failed to read file: ' . $this->path);
+            throw new ComposerSwitcherException('Failed to read file: ' . $path);
         }
 
         try {
             $data = json_decode($json, true, 512, JSON_THROW_ON_ERROR);
         } catch (JsonException $e) {
             throw new ComposerSwitcherException(
-                'Failed to decode JSON from file: ' . $this->path . '. Error: ' . $e->getMessage(),
+                'Failed to decode JSON from file: ' . $path . '. Error: ' . $e->getMessage(),
                 ComposerSwitcherException::ERROR_CANNOT_DECODE_JSON,
                 $e
             );
@@ -47,7 +51,7 @@ class ConfigFile
 
         if(!is_array($data)) {
             throw new ComposerSwitcherException(
-                'Decoded JSON is not an array in file: ' . $this->path,
+                'Decoded JSON is not an array in file: ' . $path,
                 ComposerSwitcherException::ERROR_INVALID_JSON_STRUCTURE
             );
         }
@@ -64,19 +68,21 @@ class ConfigFile
      */
     public function putData(array $data) : void
     {
+        $path = $this->getPath();
+
         try {
             $json = json_encode($data, JSON_THROW_ON_ERROR | JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
         } catch (JsonException $e) {
             throw new ComposerSwitcherException(
-                'Failed to encode data to JSON for file: ' . $this->path . '. Error: ' . $e->getMessage(),
+                'Failed to encode data to JSON for file: ' . $path . '. Error: ' . $e->getMessage(),
                 ComposerSwitcherException::ERROR_CANNOT_ENCODE_JSON,
                 $e
             );
         }
 
-        if(!file_put_contents($this->path, $json . PHP_EOL)) {
+        if(!file_put_contents($path, $json . PHP_EOL)) {
             throw new ComposerSwitcherException(
-                'Failed to write data to file: ' . $this->path,
+                'Failed to write data to file: ' . $path,
                 ComposerSwitcherException::ERROR_CANNOT_WRITE_FILE
             );
         }
