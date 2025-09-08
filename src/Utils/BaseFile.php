@@ -49,10 +49,6 @@ abstract class BaseFile
 
     public function copyTo(BaseFile $target) : void
     {
-        if($target->exists()) {
-            $target->delete();
-        }
-
         if(!copy($this->getPath(), $target->getPath())) {
             throw new ComposerSwitcherException(
                 'Failed to copy file from ' . $this->getPath() . ' to ' . $target->getPath(),
