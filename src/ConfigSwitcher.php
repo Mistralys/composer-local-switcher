@@ -61,6 +61,12 @@ class ConfigSwitcher
 
         $config = $this->prodFile->getData();
 
+        if(!$this->mainFile->getLockFile()->exists()) {
+            ConsoleWriter::line1('WARNING: No lock file found. Please run `composer update` after switching the config.');
+            ConsoleWriter::newline();
+            return;
+        }
+
         $isDev = isset($config[self::KEY_IS_DEV_CONFIG]) && $config[self::KEY_IS_DEV_CONFIG] === true;
         $isProd = !$isDev;
 
