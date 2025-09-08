@@ -62,6 +62,7 @@ You can use the following class as a starting point for your project:
 declare(strict_types=1);
 
 use Mistralys\ComposerSwitcher\ConfigSwitcher;
+use Mistralys\ComposerSwitcher\Utils\ConfigFile;
 
 class ComposerScripts
 {
@@ -97,7 +98,7 @@ class ComposerScripts
     /**
      * @var ConfigSwitcher|null 
      */
-    private static $switcher = null;
+    private static $switcher;
     
     /**
      * Create/get the configuration switcher instance.
@@ -106,7 +107,7 @@ class ComposerScripts
      * 
      * @return ConfigSwitcher
      */
-    private function createSwitcher() : ConfigSwitcher
+    private static function createSwitcher() : ConfigSwitcher
     {
         if(self::$switcher !== null) {
             return self::$switcher;
@@ -115,9 +116,9 @@ class ComposerScripts
         self::initAutoloader();
         
         $switcher = new ConfigSwitcher(
-            '/path/to/composer-production.json',
-            '/path/to/composer-local-repositories.json',
-            '/path/to/composer.json'
+            new ConfigFile('/path/to/composer-production.json'),
+            new ConfigFile('/path/to/composer-local-repositories.json'),
+            new ConfigFile('/path/to/composer.json')
         );
         
         self::$switcher = $switcher;
