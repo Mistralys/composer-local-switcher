@@ -1,0 +1,52 @@
+{
+  "name": "mistralys/composer-local-switcher",
+  "description": "PHP library that handles switching between live and local Composer dependencies using Composer scripts.",
+  "license": "MIT",
+  "type": "library",
+  "homepage": "https://github.com/Mistralys/composer-local-switcher",
+  "authors": [
+    {
+      "name": "Sebastian Mordziol",
+      "email": "s.mordziol@mistralys.eu",
+      "role": "Project Lead"
+    }
+  ],
+  "support": {
+    "issues": "https://github.com/Mistralys/composer-local-switcher/issues",
+    "source": "https://github.com/Mistralys/composer-local-switcher"
+  },
+  "autoload": {
+    "classmap": [
+      "src/"
+    ]
+  },
+  "repositories": [
+    {
+      "type": "vcs",
+      "url": "git@github.com:Mistralys/application-framework.git"
+    },
+    {
+      "type": "vcs",
+      "url": "git@github.com:Mistralys/application-utils-core.git"
+    }
+  ],
+  "require": {
+    "mistralys/application_framework": ">=4.2.0",
+    "mistralys/application-utils-core": ">=2.3.14",
+    "mistralys/application-utils": ">=3.1.9",
+    "php": ">=7.3"
+  },
+  "require-dev": {
+    "phpstan/phpstan": ">=1.10",
+    "phpstan/phpstan-phpunit": ">=1.3",
+    "phpunit/phpunit": ">=9.6",
+    "roave/security-advisories": "dev-latest"
+  },
+  "minimum-stability": "dev",
+  "prefer-stable": true,
+  "config": {
+    "platform": {
+      "php": "7.3"
+    }
+  }
+}

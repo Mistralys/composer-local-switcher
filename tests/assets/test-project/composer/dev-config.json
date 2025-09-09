@@ -1,0 +1,16 @@
+{
+  "local-repositories": [
+    {
+      "package-name": "mistralys/application_framework",
+      "path": "/path/to/application-framework"
+    },
+    {
+      "package-name": "mistralys/application-utils-core",
+      "path": "/path/to/application-utils-core"
+    },
+    {
+      "package-name": "mistralys/application-utils",
+      "path": "/path/to/application-utils"
+    }
+  ]
+}
