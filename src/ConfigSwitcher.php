@@ -10,6 +10,7 @@ namespace Mistralys\ComposerSwitcher;
 
 use Mistralys\ComposerSwitcher\Utils\ConfigFile;
 use Mistralys\ComposerSwitcher\Utils\ConsoleWriter;
+use Mistralys\ComposerSwitcher\Utils\StatusFile;
 
 /**
  * @package Composer Switcher
@@ -21,6 +22,8 @@ class ConfigSwitcher
     public const MODE_PROD = 'prod';
 
     public const KEY_IS_DEV_CONFIG = 'isDevConfig';
+    public const MESSAGE_NO_LOCK_FILE_FOUND = 182201;
+    public const MESSAGE_CREATE_NEW_LOCK_FILE = 182202;
 
     /**
      * @var ConfigFile
@@ -37,11 +40,63 @@ class ConfigSwitcher
      */
     private $mainFile;
 
-    public function __construct(ConfigFile $prodFile, ConfigFile $devConfig, ConfigFile $mainFile)
+    /**
+     * @var StatusFile
+     */
+    private $statusFile;
+    
+    /**
+     * @var ConsoleWriter
+     */
+    private $console;
+
+    /**
+     * @var bool
+     */
+    private $displayMessages = true;
+
+    /**
+     * @param ConfigFile $mainFile The main `composer.json` file.
+     * @param ConfigFile $prodFile The production `composer-prod.json` file.
+     * @param ConfigFile $devConfig The development configuration file, containing the list of local repositories.
+     */
+    public function __construct(ConfigFile $mainFile, ConfigFile $prodFile, ConfigFile $devConfig)
     {
         $this->prodFile = $prodFile;
         $this->devFile = $devConfig;
         $this->mainFile = $mainFile;
+        $this->statusFile = new StatusFile(str_replace('.json', '.status', $devConfig->getPath()));
+        $this->console = new ConsoleWriter();
+    }
+
+    /**
+     * @param bool $write
+     * @return $this
+     */
+    public function setWriteToConsole(bool $write) : self
+    {
+        $this->console->setEnabled($write);
+        return $this;
+    }
+
+    public function getMainFile(): ConfigFile
+    {
+        return $this->mainFile;
+    }
+
+    public function getDevFile(): ConfigFile
+    {
+        return $this->devFile;
+    }
+
+    public function getProdFile(): ConfigFile
+    {
+        return $this->prodFile;
+    }
+
+    public function getStatus(): StatusFile
+    {
+        return $this->statusFile;
     }
 
     public function switchToDevelopment() : void
@@ -56,70 +111,192 @@ class ConfigSwitcher
 
     public function switchTo(string $mode) : void
     {
-        ConsoleWriter::header('Switching to %s composer config', strtoupper($mode));
+        $this->console->header('Switching to %s composer config', strtoupper($mode));
 
-        $config = $this->prodFile->getData();
+        if(!$this->mainFile->getLockFile()->exists())
+        {
+            $this->addMessage(
+                'WARNING: No lock file found. Please run `composer update` after switching the config.',
+                self::MESSAGE_NO_LOCK_FILE_FOUND
+            );
 
-        if(!$this->mainFile->getLockFile()->exists()) {
-            ConsoleWriter::line1('WARNING: No lock file found. Please run `composer update` after switching the config.');
-            ConsoleWriter::newline();
+            $this->autoDisplayMessages();
             return;
         }
 
-        $isDev = isset($config[self::KEY_IS_DEV_CONFIG]) && $config[self::KEY_IS_DEV_CONFIG] === true;
-        $isProd = !$isDev;
+        $this->switch_copyLockFiles($mode);
 
-        // Restore DEV to PROD
-        if($isDev && $mode === self::MODE_PROD)
-        {
-            $backupFrom = $this->mainFile->getLockFile();
-            $backupTo = $this->devFile->getLockFile();
-            $restoreFrom = $this->prodFile->getLockFile();
-        }
-        // Overwrite PROD to DEV
-        else if($isProd && $mode === self::MODE_DEV)
-        {
-            $backupFrom = $this->mainFile->getLockFile();
-            $backupTo = $this->prodFile->getLockFile();
-            $restoreFrom = $this->devFile->getLockFile();
-        }
+        $this->statusFile->saveState($mode, $this);
 
-        if(isset($backupFrom, $backupTo, $restoreFrom))
-        {
-            ConsoleWriter::line1('Updating lock files...');
-
-            ConsoleWriter::line2('%s -> %s', $backupFrom->getName(), $backupTo->getName());
-
-            // back up current lock file
-            if($backupFrom->exists()) {
-                $backupFrom->copyTo($backupTo);
-            } else {
-                ConsoleWriter::line2('Deleting %s, will have to be created.', $backupFrom->getName(), $backupTo->getName());
-                $backupTo->delete();
-            }
-
-            // restore the original lock file
-            $restoreTo = $this->mainFile->getLockFile();
-
-            ConsoleWriter::line2('%s -> %s', $restoreFrom->getName(), $restoreTo->getName());
-
-            if ($restoreFrom->exists()) {
-                $restoreFrom->copyTo($restoreTo);
-            } else {
-                ConsoleWriter::line2('Deleting %s, will have to be created.', $restoreFrom->getName(), $restoreTo->getName());
-                $restoreTo->delete();
-            }
-        }
-
-        if ($mode === self::MODE_DEV) {
-            $config = $this->adjustForDev($config);
-        }
-
-        $this->mainFile->putData($config);
+        $this->autoDisplayMessages();
     }
 
-    private function adjustForDev(array $config) : array
+    private function switch_copyLockFiles(string $mode) : void
     {
+        $this->console->line1('Copying files for %s mode...', $mode);
+
+        $isDev = $this->getStatus()->isDEV();
+        $isProd = $this->getStatus()->isPROD();
+        $isInitial = !$isDev && !$isProd;
+
+        // Initial switch: Initialize the production files if they do not exist yet.
+        if($isInitial)
+        {
+            $this->switch_initProductionFiles();
+        }
+
+        if($mode === self::MODE_DEV)
+        {
+            if($isDev) {
+                $this->switch_case_DEV_DEV();
+            } else {
+                $this->switch_case_PROD_DEV();
+            }
+        }
+        else
+        {
+            if($isProd) {
+                $this->switch_case_PROD_PROD();
+            } else {
+                $this->switch_case_DEV_PROD();
+            }
+        }
+    }
+
+    private function switch_case_DEV_DEV() : void
+    {
+        $this->console->line1('Already in DEV mode, refreshing config...');
+        $this->addMessage('Using Composer DEV configuration.');
+
+        $this->switch_adjustConfigForDev();
+    }
+
+    private function switch_case_PROD_PROD() : void
+    {
+        $this->console->line1('Ignoring switch, already in PROD mode.');
+        $this->addMessage('Using Composer PROD configuration.');
+    }
+
+    private function switch_case_DEV_PROD() : void
+    {
+        $this->console->line1('Switching from DEV to PROD...');
+        $this->addMessage('Using Composer PROD configuration.');
+
+        $mainLockFile = $this->mainFile->getLockFile();
+
+        // Back up the DEV lock file if present
+        if($mainLockFile->exists()) {
+            $mainLockFile->copyTo($this->devFile->getLockFile());
+        }
+
+        // Restore the PROD files
+        $this->prodFile->copyTo($this->mainFile);
+        $this->prodFile->getLockFile()->copyTo($this->mainFile->getLockFile());
+
+        $this->addMessage('Run `composer install` to use the production dependencies.');
+    }
+
+    private function switch_case_PROD_DEV() : void
+    {
+        $this->console->line1('Switching from PROD to DEV...');
+        $this->addMessage('Using Composer DEV configuration.');
+
+        $prodLockFile = $this->mainFile->getLockFile();
+
+        // Back up the PROD lock file if present
+        if($prodLockFile->exists()) {
+            $prodLockFile->copyTo($this->prodFile->getLockFile());
+        }
+
+        if($this->devFile->getLockFile()->exists())
+        {
+            $this->devFile->getLockFile()->copyTo($this->mainFile->getLockFile());
+
+            $this->addMessage('Run `composer install` to use the development dependencies.');
+        }
+        else if(!$this->devFile->getLockFile()->exists())
+        {
+            // Force re-creation of the lock file
+            $this->mainFile->getLockFile()->delete();
+
+            $this->addMessage(
+                'Run `composer update` to create a DEV lock file.',
+                self::MESSAGE_CREATE_NEW_LOCK_FILE
+            );
+        }
+
+        // Generate and copy the DEV files
+        $this->switch_adjustConfigForDev();
+    }
+
+    /**
+     * Called on the initial switch only, independent of the target mode.
+     * Ensures that the production files exist by copying them from the main file.
+     */
+    private function switch_initProductionFiles() : void
+    {
+        if(!$this->prodFile->exists())
+        {
+            $this->console->line1('Creating production config...');
+
+            $this->console->line2('%s -> %s', $this->mainFile->getName(), $this->prodFile->getName());
+            $this->mainFile->copyTo($this->prodFile);
+        }
+
+        if($this->mainFile->getLockFile()->exists())
+        {
+            $this->console->line1('Creating production lock file...');
+
+            $this->console->line2('%s -> %s', $this->mainFile->getLockFile()->getName(), $this->prodFile->getLockFile()->getName());
+            $this->mainFile->getLockFile()->copyTo($this->prodFile->getLockFile());
+        }
+    }
+
+    private function autoDisplayMessages() : void
+    {
+        if($this->displayMessages === true) {
+            $this->displayMessages();
+        }
+    }
+
+    /**
+     * @return $this
+     */
+    public function displayMessages() : self
+    {
+        if(!empty($this->messages)) {
+            echo PHP_EOL;
+            foreach($this->messages as $message) {
+                echo $message . PHP_EOL;
+            }
+            echo PHP_EOL;
+        }
+
+        return $this;
+    }
+
+    /**
+     * @var string[]
+     */
+    private $messages = array();
+
+    private function addMessage(string $message, ...$args) : void
+    {
+        $this->messages[] = sprintf($message, ...$args);
+    }
+
+    /**
+     * @return string[]
+     */
+    public function getMessages(): array
+    {
+        return $this->messages;
+    }
+
+    private function switch_adjustConfigForDev() : array
+    {
+        $config = $this->prodFile->getData();
+
         if(!$this->devFile->exists()) {
             throw new ComposerSwitcherException(
                 'ERROR: The DEV composer config file does not exist.',
@@ -129,7 +306,7 @@ class ConfigSwitcher
 
         $devConfig = $this->devFile->getData();
 
-        ConsoleWriter::line1('Adjusting config for DEV...');
+        $this->console->line1('Adjusting config for DEV...');
 
         if(!isset($devConfig['local-repositories']) || !is_array($devConfig['local-repositories'])) {
             throw new ComposerSwitcherException(
@@ -167,13 +344,23 @@ class ConfigSwitcher
             $found = false;
             foreach ($config['repositories'] as $i => $repository)
             {
-                if (!isset($repository['url']) || stripos($repository['url'], $packageName) === false) {
+                if (!isset($repository['url'])) {
+                    continue;
+                }
+
+                if(
+                    stripos($repository['url'], $packageName) === false
+                    &&
+                    // GitHub repository URLs use hyphens instead of underscores.
+                    // The package name may use either.
+                    stripos($repository['url'], str_replace('_', '-', $packageName)) === false)
+                {
                     continue;
                 }
 
                 $found = true;
 
-                ConsoleWriter::line1('- UPDATE | [%s] | Overwriting existing repository entry.', $packageName);
+                $this->console->line1('- UPDATE | [%s] | Overwriting existing repository entry.', $packageName);
                 $config['repositories'][$i] = $repoEntry;
 
                 break;
@@ -182,11 +369,13 @@ class ConfigSwitcher
             // The package was not found, add it.
             if(!$found) {
                 $config['repositories'][] = $repoEntry;
-                ConsoleWriter::line1('- ADD | [%s] | Adding new repository entry.', $packageName);
+                $this->console->line1('- ADD | [%s] | Adding new repository entry.', $packageName);
             }
         }
 
-        ConsoleWriter::newline();
+        $this->mainFile->putData($config);
+
+        $this->console->newline();
 
         return $config;
     }
