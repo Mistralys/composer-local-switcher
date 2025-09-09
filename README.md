@@ -3,19 +3,36 @@
 PHP library that handles switching between live and local Composer dependencies using 
 Composer scripts.
 
-## Local development with symlinks
+## How it works
+
+### Two configurations
+
+The main `composer.json` file is switched between two configurations: 
+
+- The production configuration
+- The local development configuration
+
+> NOTE: The lock file follows the switching so you can run composer
+> commands separately for each configuration.
+
+### Local development with symlinks
 
 Using a list of local packages and their paths, the library will replace the packages
 in the `composer.json` file with path repositories that use symlinks to work directly 
-with the local packages. When switching back to production mode, the original 
-`composer.json` file is restored.
+with local package clones. When switching back to production mode, the original 
+`composer.json` and lock file are restored.
 
-## Library refactoring made easy
+### Library refactoring made easy
 
 The library is intended to make local development of interdependent Composer packages easier,
 especially when coupled with an IDE like PHPStorm that can work with multiple projects
 at the same time. Refactoring classes in a library can then be done in the library project,
 and the changes will be immediately available in the project that uses the library.
+
+- If an entry exists in `repositories`, it is overwritten with a path repository. 
+  Otherwise, a new entry is added to ensure that the package is loaded from the specified path.
+- The `require` section is updated so the package version constraint is set to `*`, 
+  which is required for path repositories.
 
 ## Setup
 
@@ -42,6 +59,9 @@ JSON file anywhere you like in your project with the following structure:
 All packages listed here will be replaced with path repositories when switching to
 development mode, and restored to their original configuration when switching back
 to production mode.
+
+For packages that do not already have an entry in the `repositories` section of the
+`composer.json` file, a new entry will be added.
 
 ### 2. Production configuration
 
@@ -128,7 +148,7 @@ class ComposerScripts
 }
 ```
 
-### 2. Set up switching scripts
+### 4. Set up switching scripts
 
 We will be adding two scripts to the `composer.json` file: One for switching to
 development mode, and one for switching back to production mode.
@@ -164,6 +184,17 @@ composer update
 composer switch-prod
 composer update
 ```
+
+## Version control
+
+Here is what you should and should not commit to version control:
+
+- `composer.json` - YES
+- `composer.lock` - YES
+- `composer-production.json` - YES
+- `composer-production.lock` - YES
+- `dev-config.json` - NO (local-specific paths)
+- `dev-config.status` - NO
 
 ## Why PHP v7.3?
 
