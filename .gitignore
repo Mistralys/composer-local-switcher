@@ -1,3 +1,4 @@
 composer.phar
 /vendor/
 /tests/assets/work-projects/
+.phpunit.result.cache
