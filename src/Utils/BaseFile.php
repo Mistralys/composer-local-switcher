@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Mistralys\ComposerSwitcher\Utils;
 
+use DateTime;
 use Mistralys\ComposerSwitcher\ComposerSwitcherException;
 
 abstract class BaseFile
@@ -26,6 +27,32 @@ abstract class BaseFile
     public function exists() : bool
     {
         return file_exists($this->path);
+    }
+
+    public function getModifiedDate() : ?DateTime
+    {
+        if(!$this->exists()) {
+            return null;
+        }
+
+        return DateTime::createFromFormat('U', (string)filemtime($this->path));
+    }
+
+    public function requireModifiedDate() : DateTime
+    {
+        $date = $this->getModifiedDate();
+
+        if($date !== null) {
+            return $date;
+        }
+
+        throw new ComposerSwitcherException(
+            sprintf(
+                'Cannot get modified date, file %s does not exist.',
+                $this->path
+            ),
+            ComposerSwitcherException::ERROR_CANNOT_GET_MODIFIED_DATE
+        );
     }
 
     public function delete() : void
