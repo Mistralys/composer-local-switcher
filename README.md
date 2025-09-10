@@ -208,16 +208,51 @@ composer switch-update
 composer update
 ```
 
+## Options
+
+### Flag files
+
+These files are created in the same folder as the `composer.json` file to make
+the current configuration mode easily visible when looking in a file browser.
+
+They are enabled by default, but can be disabled:
+
+```php
+use Mistralys\ComposerSwitcher\ConfigSwitcher;
+
+$switcher = new ConfigSwitcher();
+
+$switcher->setFlagFileEnabled(false);
+```
+
+### Console logging
+
+By default, only relevant messages are printed to the console. You can enable
+verbose logging to see all actions taken by the library:
+
+```php
+use Mistralys\ComposerSwitcher\ConfigSwitcher;
+
+$switcher = new ConfigSwitcher();
+
+$switcher->setWriteToConsole(true);
+```
+
 ## Version control
 
 Here is what you should and should not commit to version control:
 
 - `composer.json` - YES
 - `composer.lock` - YES
+- `composer.json.PROD` / `composer.json.DEV` - NO (helper files)
 - `composer-production.json` - YES
 - `composer-production.lock` - YES
 - `dev-config.json` - NO (local-specific paths)
 - `dev-config.status` - NO
+
+> NOTE: It is good practice to add a template for the `dev-config.json` file
+> to version control, so other developers can use this to create their own local
+> configuration file. This is typically named something like `dev-config.dist.json`.
 
 ## Why PHP v7.3?
 
