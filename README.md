@@ -95,6 +95,11 @@ class ComposerScripts
     {
         self::createSwitcher()->switchToProduction();
     }
+    
+    public static function switchUpdate() : void
+    {
+        self::createSwitcher()->switchUpdate();
+    }
 
     private static $initialized = false;
 
@@ -136,9 +141,9 @@ class ComposerScripts
         self::initAutoloader();
         
         $switcher = new ConfigSwitcher(
+            new ConfigFile('/path/to/composer.json'),
             new ConfigFile('/path/to/composer-production.json'),
             new ConfigFile('/path/to/composer-local-repositories.json'),
-            new ConfigFile('/path/to/composer.json')
         );
         
         self::$switcher = $switcher;
@@ -150,21 +155,24 @@ class ComposerScripts
 
 ### 4. Set up switching scripts
 
-We will be adding two scripts to the `composer.json` file: One for switching to
-development mode, and one for switching back to production mode.
+We will be adding scripts to the `composer.json` file to switch
+between development and production configurations, as well as 
+update the current configuration.
 
 ```json
 {
   "scripts": {
     "switch-dev": "ComposerScripts::switchToDEV",
-    "switch-prod": "ComposerScripts::switchToPROD"
+    "switch-prod": "ComposerScripts::switchToPROD",
+    "switch-update": "ComposerScripts::switchUpdate"
   }
 }
 ```
 
 > NOTE: It's good practice to also have a `build` script that ensures the
-> configuration is set to production mode before deploying the project to
-> minimize the risk of accidentally deploying with development dependencies.
+> configuration is set to production mode before deploying the project. 
+> This will minimize the risk of accidentally deploying with development 
+> dependencies.
 
 ## Script usage
 
@@ -182,6 +190,18 @@ composer update
 
 ```bash
 composer switch-prod
+composer update
+```
+
+### Update current configuration
+
+This command will re-apply the current configuration (DEV or PROD) to 
+update the configurations based on which files have been modified.
+Use this if you modified either the `composer-production.json` or the
+`composer.json` file directly.
+
+```bash
+composer switch-update
 composer update
 ```
 
