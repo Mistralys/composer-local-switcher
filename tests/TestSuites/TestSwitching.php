@@ -20,7 +20,8 @@ final class TestSwitching extends ComposerSwitcherTestCase
     {
         //$this->setKeepWorkFiles();
 
-        $status = $this->createSwitcher()->getStatus();
+        $switcher = $this->createSwitcher();
+        $status = $switcher->getStatus();
 
         $this->assertFalse($status->exists());
         $this->assertNull($status->getDate());
@@ -28,6 +29,9 @@ final class TestSwitching extends ComposerSwitcherTestCase
         $this->assertFalse($status->isDEV());
         $this->assertFalse($status->isPROD());
         $this->assertEmpty($status->getData());
+
+        $this->assertFalse($switcher->getFlagFile(ConfigSwitcher::MODE_DEV)->exists());
+        $this->assertFalse($switcher->getFlagFile(ConfigSwitcher::MODE_PROD)->exists());
     }
 
     /**
@@ -67,6 +71,7 @@ final class TestSwitching extends ComposerSwitcherTestCase
 
         $this->assertConfigHasExpectedPaths($switcher);
         $this->assertLockFileIsPROD($switcher->getProdFile());
+        $this->assertFlagIsDEV($switcher);
     }
 
     /**
@@ -94,6 +99,7 @@ final class TestSwitching extends ComposerSwitcherTestCase
         $this->assertTrue($switcher->getProdFile()->getLockFile()->exists());
 
         $this->assertLockFileIsPROD($switcher->getMainFile());
+        $this->assertFlagIsPROD($switcher);
     }
 
     public function test_switchDEVToPROD() : void
@@ -113,12 +119,25 @@ final class TestSwitching extends ComposerSwitcherTestCase
 
         $this->assertLockFileIsPROD($switcher->getMainFile());
         $this->assertLockFileIsDEV($switcher->getDevFile());
+        $this->assertFlagIsPROD($switcher);
     }
 
     // endregion
 
     // region: Support methods
 
+    private function assertFlagIsDEV(ConfigSwitcher $switcher) : void
+    {
+        $this->assertTrue($switcher->getFlagFile(ConfigSwitcher::MODE_DEV)->exists());
+        $this->assertFalse($switcher->getFlagFile(ConfigSwitcher::MODE_PROD)->exists());
+    }
+
+    private function assertFlagIsPROD(ConfigSwitcher $switcher) : void
+    {
+        $this->assertFalse($switcher->getFlagFile(ConfigSwitcher::MODE_DEV)->exists());
+        $this->assertTrue($switcher->getFlagFile(ConfigSwitcher::MODE_PROD)->exists());
+    }
+    
     /**
      * @param ConfigFile|LockFile $target
      * @return void
