@@ -24,6 +24,8 @@ class ConfigSwitcher
     public const KEY_IS_DEV_CONFIG = 'isDevConfig';
     public const MESSAGE_NO_LOCK_FILE_FOUND = 182201;
     public const MESSAGE_CREATE_NEW_LOCK_FILE = 182202;
+    public const KEY_LOCAL_REPOSITORIES = 'local-repositories';
+    public const KEY_REPOSITORIES = 'repositories';
 
     /**
      * @var ConfigFile
@@ -293,7 +295,7 @@ class ConfigSwitcher
         return $this->messages;
     }
 
-    private function switch_adjustConfigForDev() : array
+    private function switch_adjustConfigForDev() : void
     {
         $config = $this->prodFile->getData();
 
@@ -308,16 +310,17 @@ class ConfigSwitcher
 
         $this->console->line1('Adjusting config for DEV...');
 
-        if(!isset($devConfig['local-repositories']) || !is_array($devConfig['local-repositories'])) {
+        if(!isset($devConfig[self::KEY_LOCAL_REPOSITORIES]) || !is_array($devConfig[self::KEY_LOCAL_REPOSITORIES])) {
             throw new ComposerSwitcherException(
-                'ERROR: The DEV composer config does not contain any local repositories.',
+                sprintf(
+                    'ERROR: The DEV composer config does not contain the [%s] key, or it is not an array.',
+                    self::KEY_LOCAL_REPOSITORIES
+                ),
                 ComposerSwitcherException::ERROR_INVALID_JSON_STRUCTURE
             );
         }
 
-        $config[self::KEY_IS_DEV_CONFIG] = true;
-
-        foreach($devConfig['local-repositories'] as $repo)
+        foreach($devConfig[self::KEY_LOCAL_REPOSITORIES] as $repo)
         {
             if(!isset($repo['package-name'], $repo['path']) || !is_string($repo['package-name']) || !is_string($repo['path'])) {
                 throw new ComposerSwitcherException(
@@ -340,9 +343,13 @@ class ConfigSwitcher
                 ),
             );
 
+            if(!isset($config[self::KEY_REPOSITORIES]) || !is_array($config[self::KEY_REPOSITORIES])) {
+                $config[self::KEY_REPOSITORIES] = array();
+            }
+
             // Attempt to find an existing repository entry
             $found = false;
-            foreach ($config['repositories'] as $i => $repository)
+            foreach ($config[self::KEY_REPOSITORIES] as $i => $repository)
             {
                 if (!isset($repository['url'])) {
                     continue;
@@ -361,14 +368,14 @@ class ConfigSwitcher
                 $found = true;
 
                 $this->console->line1('- UPDATE | [%s] | Overwriting existing repository entry.', $packageName);
-                $config['repositories'][$i] = $repoEntry;
+                $config[self::KEY_REPOSITORIES][$i] = $repoEntry;
 
                 break;
             }
 
             // The package was not found, add it.
             if(!$found) {
-                $config['repositories'][] = $repoEntry;
+                $config[self::KEY_REPOSITORIES][] = $repoEntry;
                 $this->console->line1('- ADD | [%s] | Adding new repository entry.', $packageName);
             }
         }
@@ -376,7 +383,5 @@ class ConfigSwitcher
         $this->mainFile->putData($config);
 
         $this->console->newline();
-
-        return $config;
     }
 }
