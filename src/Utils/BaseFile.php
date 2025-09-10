@@ -24,6 +24,11 @@ abstract class BaseFile
         return $this->path;
     }
 
+    public function getBaseName() : string
+    {
+        return basename($this->path);
+    }
+
     public function exists() : bool
     {
         return file_exists($this->path);
