@@ -100,6 +100,28 @@ class ConfigSwitcher
         return $this->statusFile;
     }
 
+    /**
+     * Updates the current configuration, if necessary.
+     *
+     * For example, if the current mode is PROD, it will
+     * update the composer configurations depending on which
+     * has been most recently modified.
+     *
+     * @return void
+     */
+    public function switchUpdate() : void
+    {
+        // NOTE: A simple ELSE would not have been enough here,
+        // as the status may be INITIAL, in which case neither
+        // condition would be true.
+
+        if($this->getStatus()->isDEV()) {
+            $this->switchToDevelopment();
+        } else if($this->getStatus()->isPROD()) {
+            $this->switchToProduction();
+        }
+    }
+
     public function switchToDevelopment() : void
     {
         $this->switchTo(self::MODE_DEV);
@@ -110,8 +132,27 @@ class ConfigSwitcher
         $this->switchTo(self::MODE_PROD);
     }
 
+    /**
+     * Switches to the target mode.
+     *
+     * @param string $mode
+     * @return void
+     *
+     * @see self::MODE_PROD
+     * @see self::MODE_DEV
+     */
     public function switchTo(string $mode) : void
     {
+        if(!in_array($mode, array(self::MODE_DEV, self::MODE_PROD), true)) {
+            throw new ComposerSwitcherException(
+                sprintf(
+                    'Invalid switch mode. Allowed modes are: %s',
+                    implode(', ', array(self::MODE_DEV, self::MODE_PROD)),
+                ),
+                ComposerSwitcherException::ERROR_INVALID_SWITCH_MODE
+            );
+        }
+
         $this->console->header('Switching to %s composer config', strtoupper($mode));
 
         if(!$this->mainFile->getLockFile()->exists())
@@ -184,11 +225,13 @@ class ConfigSwitcher
         {
             $this->addMessage('Backing up the modified `composer.json`.');
             $this->mainFile->copyTo($this->prodFile);
+            $this->mainFile->getLockFile()->tryCopyTo($this->prodFile->getLockFile());
         }
         else if($mainModified < $prodModified)
         {
             $this->addMessage('Updating `composer.json` with changes.');
             $this->prodFile->copyTo($this->mainFile);
+            $this->prodFile->getLockFile()->tryCopyTo($this->mainFile->getLockFile());
         }
     }
 
