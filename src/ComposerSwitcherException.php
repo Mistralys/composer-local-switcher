@@ -16,4 +16,5 @@ class ComposerSwitcherException extends Exception
     public const ERROR_CANNOT_DELETE_FILE = 182106;
     public const ERROR_CANNOT_COPY_FILE = 182107;
     public const ERROR_CANNOT_READ_FILE = 182108;
+    public const ERROR_CANNOT_GET_MODIFIED_DATE = 182109;
 }
