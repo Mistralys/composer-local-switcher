@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.0.2 - Fixed updating lock files
+- Fixed an issue where the lock file was not updated when switching configurations.
+- Added the `switchUpdate()` method to update the current configuration based on modified dates.
+
 ## v1.0.1 - Handling improvements
 - Switching PROD to PROD now updates either production configs using modified dates.
 - Added some useful messages.
