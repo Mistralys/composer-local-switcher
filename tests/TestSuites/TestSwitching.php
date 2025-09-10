@@ -18,6 +18,8 @@ final class TestSwitching extends ComposerSwitcherTestCase
      */
     public function test_initialState() : void
     {
+        //$this->setKeepWorkFiles();
+
         $status = $this->createSwitcher()->getStatus();
 
         $this->assertFalse($status->exists());
@@ -46,6 +48,8 @@ final class TestSwitching extends ComposerSwitcherTestCase
      */
     public function test_initialSwitchToDEV() : void
     {
+        //$this->setKeepWorkFiles();
+
         $switcher = $this->createSwitcher();
 
         $switcher->switchToDevelopment();
@@ -71,7 +75,7 @@ final class TestSwitching extends ComposerSwitcherTestCase
      */
     public function test_initialSwitchToPROD() : void
     {
-        $this->setKeepWorkFiles();
+        //$this->setKeepWorkFiles();
 
         $switcher = $this->createSwitcher();
 
@@ -94,7 +98,7 @@ final class TestSwitching extends ComposerSwitcherTestCase
 
     public function test_switchDEVToPROD() : void
     {
-        $this->setKeepWorkFiles();
+        //$this->setKeepWorkFiles();
 
         $switcher = $this->createSwitcher();
         $switcher->switchToDevelopment();
