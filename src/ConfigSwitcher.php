@@ -21,7 +21,6 @@ class ConfigSwitcher
     public const MODE_DEV = 'dev';
     public const MODE_PROD = 'prod';
 
-    public const KEY_IS_DEV_CONFIG = 'isDevConfig';
     public const MESSAGE_NO_LOCK_FILE_FOUND = 182201;
     public const MESSAGE_CREATE_NEW_LOCK_FILE = 182202;
     public const KEY_LOCAL_REPOSITORIES = 'local-repositories';
@@ -177,6 +176,20 @@ class ConfigSwitcher
     {
         $this->console->line1('Ignoring switch, already in PROD mode.');
         $this->addMessage('Using Composer PROD configuration.');
+
+        $mainModified = $this->mainFile->requireModifiedDate();
+        $prodModified = $this->prodFile->requireModifiedDate();
+
+        if($mainModified > $prodModified)
+        {
+            $this->addMessage('Backing up the modified `composer.json`.');
+            $this->mainFile->copyTo($this->prodFile);
+        }
+        else if($mainModified < $prodModified)
+        {
+            $this->addMessage('Updating `composer.json` with changes.');
+            $this->prodFile->copyTo($this->mainFile);
+        }
     }
 
     private function switch_case_DEV_PROD() : void
@@ -383,5 +396,7 @@ class ConfigSwitcher
         $this->mainFile->putData($config);
 
         $this->console->newline();
+
+        $this->addMessage('Rebuilt a fresh DEV `composer.json`.');
     }
 }
