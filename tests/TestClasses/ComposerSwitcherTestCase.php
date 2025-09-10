@@ -109,7 +109,9 @@ abstract class ComposerSwitcherTestCase extends TestCase
 
     private function copyDirectory(string $src, string $dst): void
     {
-        mkdir($dst, 0777, true);
+        if(!is_dir($dst)) {
+            mkdir($dst, 0777, true);
+        }
 
         $items = new RecursiveIteratorIterator(
             new RecursiveDirectoryIterator($src, FilesystemIterator::SKIP_DOTS),
