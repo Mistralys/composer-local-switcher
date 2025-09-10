@@ -153,6 +153,9 @@ class ComposerScripts
 }
 ```
 
+> NOTE: Adjust the paths in the `createSwitcher()` method to point to your
+> local configuration files, as well as the autoloader path if needed.
+
 ### 4. Set up switching scripts
 
 We will be adding scripts to the `composer.json` file to switch
