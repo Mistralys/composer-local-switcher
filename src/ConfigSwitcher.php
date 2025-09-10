@@ -10,6 +10,7 @@ namespace Mistralys\ComposerSwitcher;
 
 use Mistralys\ComposerSwitcher\Utils\ConfigFile;
 use Mistralys\ComposerSwitcher\Utils\ConsoleWriter;
+use Mistralys\ComposerSwitcher\Utils\FlagFile;
 use Mistralys\ComposerSwitcher\Utils\StatusFile;
 
 /**
@@ -57,6 +58,11 @@ class ConfigSwitcher
     private $displayMessages = true;
 
     /**
+     * @var bool Whether to create a flag file alongside the main composer.json file.
+     */
+    private $flagFileEnabled = true;
+
+    /**
      * @param ConfigFile $mainFile The main `composer.json` file.
      * @param ConfigFile $prodFile The production `composer-prod.json` file.
      * @param ConfigFile $devConfig The development configuration file, containing the list of local repositories.
@@ -68,6 +74,16 @@ class ConfigSwitcher
         $this->mainFile = $mainFile;
         $this->statusFile = new StatusFile(str_replace('.json', '.status', $devConfig->getPath()));
         $this->console = new ConsoleWriter();
+    }
+
+    /**
+     * @param bool $enabled
+     * @return $this
+     */
+    public function setFlagFileEnabled(bool $enabled) : self
+    {
+        $this->flagFileEnabled = $enabled;
+        return $this;
     }
 
     /**
@@ -143,15 +159,7 @@ class ConfigSwitcher
      */
     public function switchTo(string $mode) : void
     {
-        if(!in_array($mode, array(self::MODE_DEV, self::MODE_PROD), true)) {
-            throw new ComposerSwitcherException(
-                sprintf(
-                    'Invalid switch mode. Allowed modes are: %s',
-                    implode(', ', array(self::MODE_DEV, self::MODE_PROD)),
-                ),
-                ComposerSwitcherException::ERROR_INVALID_SWITCH_MODE
-            );
-        }
+        $this->requireValidMode($mode);
 
         $this->console->header('Switching to %s composer config', strtoupper($mode));
 
@@ -170,7 +178,51 @@ class ConfigSwitcher
 
         $this->statusFile->saveState($mode, $this);
 
+        $this->writeFlagFiles();
+
         $this->autoDisplayMessages();
+    }
+
+    private function requireValidMode(string $mode) : void
+    {
+        $mode = strtolower($mode);
+
+        if(in_array($mode, array(self::MODE_DEV, self::MODE_PROD), true)) {
+            return;
+        }
+
+        throw new ComposerSwitcherException(
+            sprintf(
+                'Invalid switch mode. Allowed modes are: %s',
+                implode(', ', array(self::MODE_DEV, self::MODE_PROD)),
+            ),
+            ComposerSwitcherException::ERROR_INVALID_SWITCH_MODE
+        );
+    }
+
+    public function getFlagFile(string $mode) : FlagFile
+    {
+        $this->requireValidMode($mode);
+
+        return new FlagFile($this, $mode);
+    }
+
+    private function writeFlagFiles() : void
+    {
+        $prod = $this->getFlagFile(self::MODE_PROD);
+        $dev = $this->getFlagFile(self::MODE_DEV);
+
+        $prod->delete();
+        $dev->delete();
+
+        if($this->flagFileEnabled)
+        {
+            if($this->getStatus()->isPROD()) {
+                $prod->create();
+            } else if($this->getStatus()->isDEV()) {
+                $dev->create();
+            }
+        }
     }
 
     private function switch_copyLockFiles(string $mode) : void
