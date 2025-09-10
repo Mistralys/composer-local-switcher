@@ -83,4 +83,17 @@ abstract class BaseFile
             );
         }
     }
+
+    /**
+     * Like {@see copyTo()}, but only if both source and target files exist.
+     *
+     * @param BaseFile $target
+     * @return void
+     */
+    public function tryCopyTo(BaseFile $target) : void
+    {
+        if($this->exists() && $target->exists()) {
+            $this->copyTo($target);
+        }
+    }
 }
