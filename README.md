@@ -50,7 +50,8 @@ JSON file anywhere you like in your project with the following structure:
     },
     {
       "package-name": "vendor/other-package",
-      "path": "/path/to/other-package"
+      "path": "/path/to/other-package",
+      "version": "1.2.3"
     }
   ]
 }
@@ -62,6 +63,9 @@ to production mode.
 
 For packages that do not already have an entry in the `repositories` section of the
 `composer.json` file, a new entry will be added.
+
+> NOTE: See the section [Using specific package versions](#using-specific-package-versions)
+> for more information about the optional `version` property.
 
 ### 2. Production configuration
 
@@ -177,6 +181,19 @@ update the current configuration.
 > This will minimize the risk of accidentally deploying with development 
 > dependencies.
 
+### Vendor dependencies in attached projects
+
+A drawback of attaching local packages using path repositories is that
+the vendor dependencies of the attached packages will be included in the
+class index of the IDE, causing duplicate class messages to appear, and
+clicking on classes may be confusing at it often does not open the file
+you expect.
+
+To fix this, I usually attach a separate local clone of the package I wish
+to attach. In this clone, I do not run `composer install` to avoid creating
+a `vendor` folder altogether. This way, the IDE's index stays clean, and no
+confusion is possible.
+
 ## Script usage
 
 Once the setup is complete, you can use the following Composer commands to switch
@@ -237,6 +254,40 @@ $switcher = new ConfigSwitcher();
 
 $switcher->setWriteToConsole(true);
 ```
+
+## Using specific package versions
+
+By default, path packages get the version constraint `*` to always use the latest
+version from the local path. This will not work in all cases however: If you have 
+other version constraints in your `require` section for the same package, you will
+get a Composer error like this:
+
+```
+vendor/packagename[dev-main] from path repo (/path/to/repo) 
+has higher repository priority. The packages from the higher 
+priority repository do not match your constraint and are 
+therefore not installable.
+```
+
+To work around this, you can optionally specify a version to use for packages in the
+local repositories configuration file:
+
+```json```
+{
+  "local-repositories": [
+    {
+      "package-name": "vendor/package-name",
+      "path": "/path/to/package",
+      "version": "1.2.3"
+    }
+  ]
+}
+
+The repository will still be loaded as a path repository, but the specified version will 
+be used whenever Composer needs to resolve the package version.
+
+> NOTE: The only drawback of this approach is that you will need to maintain the version
+> number manually in the configuration file.
 
 ## Version control
 
