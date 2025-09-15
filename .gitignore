@@ -2,3 +2,5 @@ composer.phar
 /vendor/
 /tests/assets/work-projects/
 .phpunit.result.cache
+.idea/copilot.data.migration.agent.xml
+.idea/copilot.data.migration.edit.xml
