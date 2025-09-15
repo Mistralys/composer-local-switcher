@@ -188,6 +188,22 @@ final class TestSwitching extends ComposerSwitcherTestCase
                 $this->addToAssertionCount(1);
                 return;
             }
+
+            if(
+                isset(
+                    $repository['type'],
+                    $repository['package']['source']['type'],
+                    $repository['package']['source']['options']['symlink'],
+                    $repository['package']['source']['url']
+                )
+                && $repository['type'] === 'package'
+                && $repository['package']['source']['type'] === 'path'
+                && $repository['package']['source']['options']['symlink'] === true
+                && $repository['package']['source']['url'] === $path)
+            {
+                $this->addToAssertionCount(1);
+                return;
+            }
         }
 
         $this->fail('No path repository found for path: ' . $path);
