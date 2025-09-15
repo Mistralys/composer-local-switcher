@@ -1,5 +1,8 @@
 # Changelog
 
+## v1.0.4 - Versioned packages
+- Added an optional `version` setting to handle more version constraint setups.
+
 ## v1.0.3 - Flag files
 - Added flag files to indicate the current configuration mode (DEV or PROD).
 
