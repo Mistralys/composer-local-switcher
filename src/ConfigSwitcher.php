@@ -439,17 +439,45 @@ class ConfigSwitcher
 
             $packageName = $repo['package-name'];
             $path = $repo['path'];
+            $version = $repo['version'] ?? '*';
 
-            // Set the version requirement to any version.
-            $config['require'][$packageName] = '*';
+            $config['require'][$packageName] = $version;
 
-            $repoEntry = array(
-                'type' => 'path',
-                'url' => $path,
-                'options' => array(
-                    'symlink' => true
-                ),
-            );
+            // Default wildcard version in the path repository.
+            // This means that no version constraint is applied,
+            // and the package will always be treated as the latest version,
+            // which equals to `dev-main`.
+            if($version === '*')
+            {
+                $repoEntry = array(
+                    'type' => 'path',
+                    'url' => $path,
+                    'options' => array(
+                        'symlink' => true
+                    ),
+                );
+            }
+            // Specific version constraint, use the "package" repository type
+            // which allows customizing the version that Composer sees.
+            else
+            {
+                $repoEntry = array(
+                    'type' => 'package',
+                    'package' => array(
+                        'name' => $packageName,
+                        'version' => $version,
+                        'type' => 'library',
+                        'source' => array(
+                            'url' => $path,
+                            'type' => 'path',
+                            'reference' => '*',
+                            'options' => array(
+                                'symlink' => true
+                            )
+                        ),
+                    ),
+                );
+            }
 
             if(!isset($config[self::KEY_REPOSITORIES]) || !is_array($config[self::KEY_REPOSITORIES])) {
                 $config[self::KEY_REPOSITORIES] = array();
