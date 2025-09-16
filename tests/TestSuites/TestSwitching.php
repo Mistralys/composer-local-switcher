@@ -122,6 +122,14 @@ final class TestSwitching extends ComposerSwitcherTestCase
         $this->assertFlagIsPROD($switcher);
     }
 
+    public function test_specificPackageVersion() : void
+    {
+        $switcher = $this->createSwitcher();
+        $switcher->switchToDevelopment();
+
+        $this->assertConfigHasCustomVersion($switcher, 'mistralys/application-utils-core', '2.3.14');
+    }
+
     // endregion
 
     // region: Support methods
@@ -188,25 +196,30 @@ final class TestSwitching extends ComposerSwitcherTestCase
                 $this->addToAssertionCount(1);
                 return;
             }
+        }
 
+        $this->fail('No path repository found for path: ' . $path);
+    }
+
+    private function assertConfigHasCustomVersion(ConfigSwitcher $switcher, string $packageName, string $version) : void
+    {
+        $config = $switcher->getMainFile()->getData();
+        $this->assertArrayHasKey('repositories', $config);
+        $this->assertIsArray($config['repositories']);
+
+        foreach($config['repositories'] as $repository)
+        {
             if(
-                isset(
-                    $repository['type'],
-                    $repository['package']['source']['type'],
-                    $repository['package']['source']['options']['symlink'],
-                    $repository['package']['source']['url']
-                )
-                && $repository['type'] === 'package'
-                && $repository['package']['source']['type'] === 'path'
-                && $repository['package']['source']['options']['symlink'] === true
-                && $repository['package']['source']['url'] === $path)
-            {
+                isset($repository['type'], $repository['options']['versions'][$packageName])
+                && $repository['type'] === 'path'
+                && $repository['options']['versions'][$packageName] === $version
+            ) {
                 $this->addToAssertionCount(1);
                 return;
             }
         }
 
-        $this->fail('No path repository found for path: ' . $path);
+        $this->fail('No version definition found for package name: ' . $packageName);
     }
 
     // endregion
