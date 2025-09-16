@@ -447,36 +447,33 @@ class ConfigSwitcher
             // This means that no version constraint is applied,
             // and the package will always be treated as the latest version,
             // which equals to `dev-main`.
-            if($version === '*')
+            $repoEntry = array(
+                'type' => 'path',
+                'url' => $path,
+                'options' => array(
+                    'symlink' => true
+                ),
+            );
+
+            // Specific version constraint: This means that the version cannot
+            // be inferred from the local package (no `version` field in its
+            // `composer.json`), and therefore we need to define the package
+            // version explicitly.
+            if($version !== '*')
             {
-                $repoEntry = array(
-                    'type' => 'path',
-                    'url' => $path,
-                    'options' => array(
-                        'symlink' => true
-                    ),
+                $versions = array(
+                    $packageName => $version
                 );
-            }
-            // Specific version constraint, use the "package" repository type
-            // which allows customizing the version that Composer sees.
-            else
-            {
-                $repoEntry = array(
-                    'type' => 'package',
-                    'package' => array(
-                        'name' => $packageName,
-                        'version' => $version,
-                        'type' => 'library',
-                        'source' => array(
-                            'url' => $path,
-                            'type' => 'path',
-                            'reference' => '*',
-                            'options' => array(
-                                'symlink' => true
-                            )
-                        ),
-                    ),
-                );
+
+                if(strpos($packageName, '_') !== false)
+                {
+                    // Some package names use underscores instead of hyphens.
+                    // The repository URL may use either, so we need to add
+                    // both versions to ensure that Composer can find it.
+                    $versions[str_replace('_', '-', $packageName)] = $version;
+                }
+
+                $repoEntry['options']['versions'] = $versions;
             }
 
             if(!isset($config[self::KEY_REPOSITORIES]) || !is_array($config[self::KEY_REPOSITORIES])) {
